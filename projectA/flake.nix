@@ -2,25 +2,27 @@
   description = "Project A";
 
   inputs = {
-    flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = inputs @ {flake-parts, ...}:
-    flake-parts.lib.mkFlake {inherit inputs;} {
-      systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
+  outputs = {nixpkgs, ...}: let
+    systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
+    forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+    version = "0.1.0";
+  in {
+    packages = forAllSystems (pkgs: {
+      projectA = pkgs.writeShellScriptBin "projectA" ''
+        echo "projectA v${version}"
+      '';
+      default = pkgs.writeShellScriptBin "projectA" ''
+        echo "projectA v${version}"
+      '';
+    });
 
-      imports = [
-        ./default.nix
-      ];
-
-      perSystem = {self', pkgs, ...}: {
-        devShells.default = pkgs.mkShell {
-          name = "projectA";
-          packages = [
-            self'.packages.projectA
-          ];
-        };
+    devShells = forAllSystems (pkgs: {
+      default = pkgs.mkShell {
+        name = "projectA";
       };
-    };
+    });
+  };
 }
