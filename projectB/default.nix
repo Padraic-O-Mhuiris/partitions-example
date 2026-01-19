@@ -1,23 +1,15 @@
 # projectB/default.nix
-{lib, ...}: let
-  # TOGGLE: true = local, false = release
-  useLocal = true;
-
-  releaseFlake = "github:Padraic-O-Mhuiris/partitions-example/844c8892e167e2c77c5de7b058b6ad4ece667600";
+# projectA comes from extraInputsFlake (local ./projectA or release from inputs.nix)
+{lib, inputs, ...}: let
+  _ = builtins.trace "projectB inputs: ${builtins.toString (builtins.attrNames inputs)}" null;
 in {
-  imports = lib.optionals useLocal [
-    ../projectA
-  ];
-
   perSystem = {
     pkgs,
-    self',
+    inputs',
     ...
   }: let
-    projectA =
-      if useLocal
-      then self'.packages.projectA
-      else (builtins.getFlake releaseFlake).packages.${pkgs.system}.projectA;
+    __ = builtins.trace "projectB inputs': ${builtins.toString (builtins.attrNames inputs')}" null;
+    projectA = inputs'.self.packages.projectA;
   in {
     packages.projectB = pkgs.writeShellScriptBin "projectB" ''
       echo "projectB"
