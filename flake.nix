@@ -1,33 +1,48 @@
 {
-  description = "Monorepo with projectA and projectB";
+  description = "Monorepo with projectA and projectB partitions";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    projectA.url = "path:./projectA";
-    projectB.url = "path:./projectB";
   };
 
-  outputs = inputs @ {flake-parts, projectA, projectB, ...}:
+  outputs = inputs @ {
+    flake-parts,
+    self,
+    ...
+  }:
     flake-parts.lib.mkFlake {inherit inputs;} {
+      # debug = true;
+      imports = [
+        inputs.flake-parts.flakeModules.partitions
+
+        ({config, ...}: {
+          flake.xxx = {
+            inherit config;
+          };
+        })
+      ];
+
       systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
 
-      perSystem = {pkgs, system, ...}: {
-        packages = {
-          inherit (projectA.packages.${system}) projectA;
-          inherit (projectB.packages.${system}) projectB;
-        };
+      # partitionedAttrs = {
+      #   packages = "projectA";
+      #   checks = "projectB";
+      # };
 
-        checks = {
-          inherit (projectB.checks.${system}) projectB-integration;
-        };
+      partitions.projectA = {
+        extraInputsFlake = ./projectA;
+        module = ./projectA;
+      };
 
+      partitions.projectB = {
+        extraInputsFlake = ./projectB;
+        module = ./projectB;
+      };
+
+      perSystem = {pkgs, ...}: {
         devShells.default = pkgs.mkShell {
           name = "partitions-example";
-          packages = [
-            projectA.packages.${system}.projectA
-            projectB.packages.${system}.projectB
-          ];
         };
       };
     };
