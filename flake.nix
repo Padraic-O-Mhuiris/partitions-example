@@ -30,10 +30,12 @@
       partitions.projectB =
         if useRelease
         then {
-          extraInputsFlake = projectBInputs.projectA;
+          # Release: pass the flake as an extra input
+          extraInputs.projectA-release = builtins.getFlake projectBInputs.projectA;
           module = ./projectB;
         }
         else {
+          # Local: use subflake
           extraInputsFlake = ./projectA;
           module = ./projectB;
         };
