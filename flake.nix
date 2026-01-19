@@ -6,10 +6,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = inputs @ {flake-parts, ...}: let
-    projectBInputs = import ./projectB/inputs.nix;
-    useRelease = projectBInputs ? projectA;
-  in
+  outputs = inputs @ {flake-parts, ...}:
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
         inputs.flake-parts.flakeModules.partitions
@@ -27,18 +24,14 @@
         module = ./projectA;
       };
 
-      partitions.projectB =
-        if useRelease
-        then {
-          # Release: pass the flake as an extra input
-          extraInputs.projectA-release = builtins.getFlake projectBInputs.projectA;
-          module = ./projectB;
-        }
-        else {
-          # Local: use subflake
-          extraInputsFlake = ./projectA;
-          module = ./projectB;
+      partitions.projectB = {
+        extraInputsFlake = ./projectB;
+        module = {inputs, ...}: {
+          imports = [
+            ./projectB/default.nix
+          ];
         };
+      };
 
       perSystem = {pkgs, ...}: {
         devShells.default = pkgs.mkShell {

@@ -1,17 +1,12 @@
 # projectB/default.nix
-# projectA comes from:
-# - extraInputsFlake (local): inputs'.self.packages.projectA
-# - extraInputs (release): inputs'.projectA-release.packages.projectA
+# projectA comes from extraInputsFlake (./projectB/flake.nix inputs.projectA)
 {lib, inputs, ...}: {
   perSystem = {
     pkgs,
     inputs',
     ...
   }: let
-    projectA =
-      if inputs' ? projectA-release
-      then inputs'.projectA-release.packages.projectA
-      else inputs'.self.packages.projectA;
+    projectA = inputs'.projectA.packages.projectA;
   in {
     packages.projectB = pkgs.writeShellScriptBin "projectB" ''
       echo "projectB"

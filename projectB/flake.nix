@@ -1,26 +1,14 @@
 {
-  description = "Project B";
+  description = "ProjectB inputs - controls whether projectA comes from local or release";
 
   inputs = {
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Local development: use the local projectA subflake
+    projectA.url = "path:../projectA";
+
+    # Release: uncomment below and comment out the line above
+    # projectA.url = "github:Padraic-O-Mhuiris/partitions-example/844c8892e167e2c77c5de7b058b6ad4ece667600";
   };
 
-  outputs = inputs @ {flake-parts, ...}:
-    flake-parts.lib.mkFlake {inherit inputs;} {
-      systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
-
-      imports = [
-        ./default.nix
-      ];
-
-      perSystem = {self', pkgs, ...}: {
-        devShells.default = pkgs.mkShell {
-          name = "projectB";
-          packages = [
-            self'.packages.projectB
-          ];
-        };
-      };
-    };
+  # This flake is only used for its inputs
+  outputs = {...}: {};
 }
