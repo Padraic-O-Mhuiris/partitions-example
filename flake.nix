@@ -8,9 +8,7 @@
 
   outputs = inputs @ {flake-parts, ...}: let
     projectBInputs = import ./projectB/inputs.nix;
-    _ = builtins.trace "projectBInputs: ${builtins.toJSON projectBInputs}" null;
     useRelease = projectBInputs ? projectA;
-    __ = builtins.trace "useRelease: ${builtins.toJSON useRelease}" null;
   in
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
@@ -32,12 +30,10 @@
       partitions.projectB =
         if useRelease
         then {
-          # Release: fetch from pinned flake ref
           extraInputsFlake = projectBInputs.projectA;
           module = ./projectB;
         }
         else {
-          # Local: use subflake path
           extraInputsFlake = ./projectA;
           module = ./projectB;
         };

@@ -1,14 +1,11 @@
 # projectB/default.nix
 # projectA comes from extraInputsFlake (local ./projectA or release from inputs.nix)
-{lib, inputs, ...}: let
-  _ = builtins.trace "projectB inputs: ${builtins.toString (builtins.attrNames inputs)}" null;
-in {
+{lib, inputs, ...}: {
   perSystem = {
     pkgs,
     inputs',
     ...
   }: let
-    __ = builtins.trace "projectB inputs': ${builtins.toString (builtins.attrNames inputs')}" null;
     projectA = inputs'.self.packages.projectA;
   in {
     packages.projectB = pkgs.writeShellScriptBin "projectB" ''
