@@ -1,35 +1,55 @@
 {
-  description = "Description for the project";
+  description = "Flake-parts partitions example: local vs release dependency binding";
 
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = inputs@{ flake-parts, ... }:
+  outputs = inputs@{ flake-parts, self, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
-        # To import an internal flake module: ./other.nix
-        # To import an external flake module:
-        #   1. Add foo to inputs
-        #   2. Add foo as a parameter to the outputs function
-        #   3. Add here: foo.flakeModule
-
+        inputs.flake-parts.flakeModules.partitions
       ];
+
       systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
-      perSystem = { config, self', inputs', pkgs, system, ... }: {
-        # Per-system attributes can be defined here. The self' and inputs'
-        # module parameters provide easy access to attributes of the same
-        # system.
 
-        # Equivalent to  inputs'.nixpkgs.legacyPackages.hello;
-        packages.default = pkgs.hello;
+      # All packages and checks come from the dev partition
+      partitionedAttrs = {
+        packages = "dev";
+        checks = "dev";
       };
-      flake = {
-        # The usual flake attributes can be defined here, including system-
-        # agnostic ones like nixosModule and system-enumerating ones, although
-        # those are more easily expressed in perSystem.
 
+      # Partition for projectA standalone (could be used separately)
+      partitions.projectA = {
+        module = ./projectA/flake-module.nix;
+      };
+
+      # Development partition - includes both projects with local dependency
+      partitions.dev = {
+        # ============================================================
+        # TOGGLE BETWEEN THESE TWO OPTIONS:
+        # ============================================================
+
+        # Option 1: Use local projectA (for development)
+        # Import projectA directly - projectB will use current local version
+        module = {
+          imports = [
+            ./projectA/flake-module.nix
+            ./projectB/flake-module.nix
+          ];
+        };
+
+        # Option 2: Use a pinned release version (for reproducible builds)
+        # Uncomment below and comment out the module block above:
+        # extraInputsFlake = "github:Padraic-O-Mhuiris/partitions-example/<commit-sha>";
+        # module = ./projectB/flake-module.nix;
+      };
+
+      perSystem = { pkgs, ... }: {
+        devShells.default = pkgs.mkShell {
+          name = "partitions-example";
+        };
       };
     };
 }
