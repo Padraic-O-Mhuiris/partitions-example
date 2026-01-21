@@ -1,46 +1,48 @@
 {
-  description = "Monorepo with projectA and projectB partitions";
+  description = "Monorepo with overlay for previous version refs";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
+
+    # Previous released version of this repo
+    projectA-upstream.url = "github:Padraic-O-Mhuiris/partitions-example";
   };
 
   outputs = inputs @ {
     flake-parts,
     self,
     ...
-  }:
+  }: let
+    # Toggle: true = use upstream, false = use local
+    useUpstream = false;
+  in
     flake-parts.lib.mkFlake {inherit inputs;} {
-      # debug = true;
-      imports = [
-        inputs.flake-parts.flakeModules.partitions
-
-        ({config, ...}: {
-          flake.xxx = {
-            inherit config;
-          };
-        })
-      ];
-
       systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
 
-      # partitionedAttrs = {
-      #   packages = "projectA";
-      #   checks = "projectB";
-      # };
+      perSystem = {
+        pkgs,
+        system,
+        self',
+        ...
+      }: let
+        projectA =
+          if useUpstream
+          then inputs.projectA-upstream.packages.${system}.projectA
+          else self'.packages.projectA;
+      in {
+        packages = {
+          projectA = pkgs.writeShellScriptBin "projectA" ''
+            echo "projectA v0.2.0-dev"
+          '';
 
-      partitions.projectA = {
-        extraInputsFlake = ./projectA;
-        module = ./projectA;
-      };
+          projectB = pkgs.writeShellScriptBin "projectB" ''
+            echo "projectB"
+            echo "Using projectA:"
+            ${projectA}/bin/projectA
+          '';
+        };
 
-      partitions.projectB = {
-        extraInputsFlake = ./projectB;
-        module = ./projectB;
-      };
-
-      perSystem = {pkgs, ...}: {
         devShells.default = pkgs.mkShell {
           name = "partitions-example";
         };
